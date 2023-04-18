@@ -1,21 +1,11 @@
 import * as functions from "../node_modules/firebase-functions";
+import * as admin from "../node_modules/firebase-admin";
+admin.initializeApp();
 
-
-export const uwu = functions.https.onRequest((request, response) => {
-  console.log("Hello!");
-  response.end("UWU");
-});
-
-
-exports.myFunction = functions.firestore
-  .document("/emergency")
-  .onWrite((context) => { 
+export const getData = functions.https.onRequest((req, res)=> {
+  const promise = admin.firestore().doc("emergency/HsPgBiSxc9WtxhWp2aUL").get();
+  promise.then((snapshot) => {
+    const data = snapshot.data();
+    res.send(data);
   });
-
-// // Start writing functions
-// // https://firebase.google.com/docs/functions/typescript
-//
-// export const helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+});
