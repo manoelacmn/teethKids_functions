@@ -3,6 +3,7 @@ import * as functions from "../node_modules/firebase-functions";
 import * as admin from "../node_modules/firebase-admin";
 import {getFirestore, getDocs, collection} from "firebase-admin/firestore";
 
+
 admin.initializeApp();
 
 
@@ -27,9 +28,13 @@ export const onBostonWeather = functions.firestore.document("emergency/HsPgBiSxc
 
 
 export const notifyEmergency = functions.https.onRequest(async (req, res) => {
-  const querySnapshot = await getDocs(collection(db, "users"));
-  querySnapshot.forEach((doc: { id: unknown; data: () => unknown; }) => {
-    console.log(doc.id, " => ", doc.data());
+  const users = db.collection("users");
+  const snapshot = await users.get();
+  let uids = []
+  snapshot.forEach((doc) => {
+    const field = doc.data().uid;
+    uids.push(field);
+    console.log(doc.id, "=>", field);
   });
 });
 
