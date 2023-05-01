@@ -1,12 +1,12 @@
 /* eslint-disable max-len */
 import * as functions from "../node_modules/firebase-functions";
 import * as admin from "../node_modules/firebase-admin";
-import { getFirestore , getDocs , collection } from "firebase-admin/firestore";
+import {getFirestore, getDocs, collection} from "firebase-admin/firestore";
 
 admin.initializeApp();
 
 
-const db = getFirestore()
+const db = getFirestore();
 
 
 // eslint-disable-next-line max-len
@@ -32,7 +32,6 @@ export const notifyEmergency = functions.https.onRequest(async (req, res) => {
     console.log(doc.id, " => ", doc.data());
   });
 });
-
 
 
 export const getEmergencies = functions.firestore
