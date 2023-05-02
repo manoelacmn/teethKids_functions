@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import * as functions from "../node_modules/firebase-functions";
 import * as admin from "../node_modules/firebase-admin";
-import {getFirestore, getDocs, collection} from "firebase-admin/firestore";
+import {getFirestore} from "firebase-admin/firestore";
 
 
 admin.initializeApp();
@@ -30,19 +30,34 @@ export const onBostonWeather = functions.firestore.document("emergency/HsPgBiSxc
 export const notifyEmergency = functions.https.onRequest(async (req, res) => {
   const users = db.collection("users");
   const snapshot = await users.get();
-  let uids = []
+  const uids: any[] = [];
   snapshot.forEach((doc) => {
     const field = doc.data().uid;
     uids.push(field);
     console.log(doc.id, "=>", field);
   });
+  console.log(uids.toString());
 });
+
+// export const notifyEmergency = functions.firestore.document("emergency/{any}")
+//   .onCreate( (change, context) => {
+//     const users = db.collection("users");
+//     const snapshot = await users.get();
+//     const uids: any[] = [];
+//     snapshot.forEach((doc) => {
+//       const field = doc.data().uid;
+//       uids.push(field);
+//       console.log(doc.id, "=>", field);
+//     });
+//   });
 
 
 export const getEmergencies = functions.firestore
   .document("emergency/{any}")
-  .onCreate(() => {
+  .onCreate((snap , context) => {
     functions.logger.log("nova emergencia");
+    const newEmergency = snap.data();
+    console.log(newEmergency);
   });
 // export const getAll = functions.https.onRequest((req, res) => {
 //   admin.firestore().doc("areas/greater_boston").get()
