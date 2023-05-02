@@ -83,3 +83,11 @@ export const getData = functions.https.onRequest((req, res)=> {
     res.status(500).send(err);
   });
 });
+
+export const acceptEmergency = functions.https.onCall(async (data, context) => {
+  const emergency = data.emergency.toString();
+  const uid = context.auth?.uid;
+
+  const emergencyDocRef = db.collection("emergency").doc(emergency);
+  const res = await emergencyDocRef.update({status: "accepted"});
+});
