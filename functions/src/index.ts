@@ -30,13 +30,13 @@ export const onBostonWeather = functions.firestore.document("emergency/HsPgBiSxc
 export const notifyEmergency = functions.https.onRequest(async (req, res) => {
   const users = db.collection("users");
   const snapshot = await users.get();
-  const uids: any[] = [];
+  // const uids: any[] = [];
   snapshot.forEach((doc) => {
     const field = doc.data().uid;
-    uids.push(field);
+    // uids.push(field);
     console.log(doc.id, "=>", field);
   });
-  console.log(uids.toString());
+  // console.log(uids.toString());
 });
 
 // export const notifyEmergency = functions.firestore.document("emergency/{any}")
@@ -54,10 +54,25 @@ export const notifyEmergency = functions.https.onRequest(async (req, res) => {
 
 export const getEmergencies = functions.firestore
   .document("emergency/{any}")
-  .onCreate((snap, context) => {
+  .onCreate(async (snap, context) => {
     functions.logger.log("nova emergencia");
     const newEmergency = snap.data();
     functions.logger.log(newEmergency);
+
+    const users = db.collection("users");
+    const snapshot = await users.get();
+    snapshot.forEach((doc) => {
+      const field = doc.data().fcm;
+      const message = {
+        data: {score: "850", time: "2:45"},
+        tokens: field,
+      };
+      admin.messaging().sendMulticast(message)
+        .then((response) => {
+          console.log(response.successCount + " messages were sent successfully");
+        });
+      console.log(doc.id, "=>", field);
+    });
   });
 // export const getAll = functions.https.onRequest((req, res) => {
 //   admin.firestore().doc("areas/greater_boston").get()
