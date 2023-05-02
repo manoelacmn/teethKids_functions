@@ -54,10 +54,10 @@ export const notifyEmergency = functions.https.onRequest(async (req, res) => {
 
 export const getEmergencies = functions.firestore
   .document("emergency/{any}")
-  .onCreate((snap , context) => {
+  .onCreate((snap, context) => {
     functions.logger.log("nova emergencia");
     const newEmergency = snap.data();
-    console.log(newEmergency);
+    functions.logger.log(newEmergency);
   });
 // export const getAll = functions.https.onRequest((req, res) => {
 //   admin.firestore().doc("areas/greater_boston").get()
