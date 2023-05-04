@@ -1,31 +1,74 @@
 /* eslint-disable max-len */
 import * as functions from "../node_modules/firebase-functions";
 import * as admin from "../node_modules/firebase-admin";
-import {getFirestore} from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+import * as fb from "firebase-admin/firestore";
+import {getAuth} from "firebase-admin/auth";
 
 
 admin.initializeApp();
 
+const firebase = admin.initializeApp();
+const db = fb.getFirestore();
 
-const db = getFirestore();
+const batch = db.batch();
 
+type Usuario = {
+  nome: string,
+  email: string,
+  telefone: string,
+  fcmToken: string | undefined,
+  uid: string,
+}
+
+type CustomResponse = {
+  status: string | unknown,
+  message: string | unknown,
+  payload: unknown,
+}
+
+// function hasAccountData(data: Usuario) {
+//   if (data.nome != undefined &&
+//       data.email != undefined &&
+//       data.telefone != undefined &&
+//       data.uid != undefined &&
+//       data.fcmToken != undefined) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// }
+
+export const updateUserFcm = functions.
+  region("southamerica-east1")
+  .https.
+  onCall(async (data, context) => {
+    const uid = data.uid;
+    const fcmtoken = data.fcmtoken;
+    const usersRef = db.collection("users");
+    const snapshot = await usersRef.where("uid", "==", uid).get();
+
+    snapshot.forEach(async (doc) => {
+      const tempRef = db.collection("users").doc(doc.id);
+      batch.update(tempRef, {fcmToken: fcmtoken});
+      await batch.commit();
+    });
+  });
 
 // eslint-disable-next-line max-len
-export const onBostonWeather = functions.region("southamerica-east1").firestore.document("emergency/HsPgBiSxc9WtxhWp2aUL")
-  .onUpdate((Change) => {
-    const after = Change.after.data();
-    const payload = {
-      data: {
-        age: after.age,
-        grade: after.grade,
-      },
-    };
-    return admin.messaging().sendToTopic("HsPgBiSxc9WtxhWp2aUL", payload)
-      .catch((err: any) => {
-        console.error("FCM FAILED", err);
-      });
-  });
+// export const onBostonWeather = functions.region("southamerica-east1").firestore.document("emergency/HsPgBiSxc9WtxhWp2aUL")
+//   .onUpdate((Change) => {
+//     const after = Change.after.data();
+//     const payload = {
+//       data: {
+//         age: after.age,
+//         grade: after.grade,
+//       },
+//     };
+//     return admin.messaging().sendToTopic("HsPgBiSxc9WtxhWp2aUL", payload)
+//       .catch((err: any) => {
+//         console.error("FCM FAILED", err);
+//       });
+//   });
 
 
 export const notifyEmergency = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
@@ -112,7 +155,8 @@ export const getUids = functions.region("southamerica-east1").firestore
         });
     };
     // Start listing users from the beginning, 1000 at a time.
-    //listAllUsers("uid");
+    listAllUsers("");
+    // listAllUsers("uid");
   });
 
 // export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
@@ -141,7 +185,6 @@ export const getUids = functions.region("southamerica-east1").firestore
 //     });
 // };
 // Start listing users from the beginning, 1000 at a time.
-
 
 
 export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {

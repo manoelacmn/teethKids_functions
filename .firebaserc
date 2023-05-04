@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "forcodelabs"
-  }
+    "default": "forcodelabs",
+    "teethkids": "teethkids-10c6a"
+  },
+  "targets": {},
+  "etags": {}
 }
