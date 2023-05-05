@@ -126,7 +126,7 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
     const newEmergency = snap.data();
     functions.logger.log(newEmergency);
 
-    const users = db.collection("usuario");
+    const users = db.collection("usuarios");
     const snapshot = await users.get();
     snapshot.forEach(async (doc) => {
       const field = await doc.data().fcmtoken;
