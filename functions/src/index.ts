@@ -51,24 +51,13 @@ const db = fb.getFirestore();
 //   }
 // }
 
-export const acceptEmergency = functions.
-  region("southamerica-east1")
-  .https.
-  onCall(async (data, context) => {
-    const uid = data.uid;
-    const fcmtoken = data.fcmtoken;
-    const usersRef = db.collection("usuarios");
-    const snapshot = await usersRef.where("uid", "==", uid).get();
-    functions.logger.log("fcmtoken ->", fcmtoken);
-    functions.logger.log("uid ->", uid);
-    snapshot.forEach(async (doc) => {
-      const tempRef = db.collection("usuarios").doc(doc.id);
-      const res = await tempRef.update({fcmtoken: fcmtoken});
-      functions.logger.log(res);
-      // batch.update(tempRef, {fcmToken: fcmtoken});
-      // await batch.commit();
-    });
-  });
+// export const acceptEmergency = functions.
+//   region("southamerica-east1")
+//   .https.
+//   onCall(async (data, context) => {
+
+//   });
+
 
 export const updateUserFcm = functions.
   region("southamerica-east1")
@@ -131,7 +120,7 @@ export const notifyEmergency = functions.region("southamerica-east1").https.onRe
 
 
 export const getEmergencies = functions.region("southamerica-east1").firestore
-  .document("emergency/{any}")
+  .document("emergencias/{any}")
   .onCreate(async (snap, context) => {
     functions.logger.log("nova emergencia");
     const newEmergency = snap.data();
@@ -141,21 +130,25 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
     const snapshot = await users.get();
     snapshot.forEach(async (doc) => {
       const field = await doc.data().fcmtoken;
+      functions.logger.log("under");
       functions.logger.log(field);
+      functions.logger.log("up");
       try {
         const message = {
           data: {
             text: "new emegency",
-            uid: newEmergency.uid
+            uid: newEmergency.uid,
           },
           token: field,
         };
-         (await admin.messaging().send(message))
-      console.log(newEmergency.uid, "=>", field);
-      functions.logger.log(newEmergency.uid, "=>", field);
-    }catch{
-      
-    };
+        (await admin.messaging().send(message));
+        console.log(newEmergency.uid, "=>", field);
+        functions.logger.log(newEmergency.uid, "=>", field);
+      // eslint-disable-next-line no-empty
+      } catch {
+
+      }
+    });
   });
 // export const getAll = functions.https.onRequest((req, res) => {
 //   admin.firestore().doc("areas/greater_boston").get()
@@ -235,3 +228,4 @@ export const getData = functions.region("southamerica-east1").https.onRequest((r
     res.status(500).send(err);
   });
 });
+
