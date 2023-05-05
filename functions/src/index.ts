@@ -11,7 +11,7 @@ admin.initializeApp();
 // const firebase = admin.initializeApp();
 const db = fb.getFirestore();
 
-const batch = db.batch();
+// const batch = db.batch();
 
 
 // export const registerUid = functions
@@ -51,20 +51,40 @@ const batch = db.batch();
 //   }
 // }
 
-export const updateUserFcm = functions.
+export const acceptEmergency = functions.
   region("southamerica-east1")
   .https.
   onCall(async (data, context) => {
     const uid = data.uid;
     const fcmtoken = data.fcmtoken;
-    const usersRef = db.collection("users");
+    const usersRef = db.collection("usuarios");
     const snapshot = await usersRef.where("uid", "==", uid).get();
     functions.logger.log("fcmtoken ->", fcmtoken);
     functions.logger.log("uid ->", uid);
     snapshot.forEach(async (doc) => {
-      const tempRef = db.collection("users").doc(doc.id);
-      batch.update(tempRef, {fcmToken: fcmtoken});
-      await batch.commit();
+      const tempRef = db.collection("usuarios").doc(doc.id);
+      const res = await tempRef.update({fcmtoken: fcmtoken});
+      functions.logger.log(res);
+      // batch.update(tempRef, {fcmToken: fcmtoken});
+      // await batch.commit();
+    });
+  });
+
+export const updateUserFcm = functions.
+  region("southamerica-east1")
+  .https.
+  onCall(async (data, context) => {
+    const email = data.email;
+    const fcmtoken = data.fcmtoken;
+    const usersRef = db.collection("usuarios");
+    const snapshot = await usersRef.where("email", "==", email).get();
+    functions.logger.log("fcmtoken ->", fcmtoken);
+    functions.logger.log("email ->", email);
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("usuarios").doc(doc.id);
+      const res = await tempRef.update({fcmtoken: fcmtoken});
+      functions.logger.log(res);
     });
   });
 
@@ -117,22 +137,25 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
     const newEmergency = snap.data();
     functions.logger.log(newEmergency);
 
-    const users = db.collection("users");
+    const users = db.collection("usuario");
     const snapshot = await users.get();
     snapshot.forEach(async (doc) => {
-      const field = await doc.data().fcm;
+      const field = await doc.data().fcmtoken;
       functions.logger.log(field);
-      // const message = {
-      //   data: {score: "850", time: "2:45"},
-      //   tokens: field,
-      // };
-      // admin.messaging().sendMulticast(message)
-      //   .then((response) => {
-      //     console.log(response.successCount + " messages were sent successfully");
-      //   });
+      try {
+        const message = {
+          data: {
+            text: "new emegency",
+            uid: newEmergency.uid
+          },
+          token: field,
+        };
+         (await admin.messaging().send(message))
       console.log(newEmergency.uid, "=>", field);
       functions.logger.log(newEmergency.uid, "=>", field);
-    });
+    }catch{
+      
+    };
   });
 // export const getAll = functions.https.onRequest((req, res) => {
 //   admin.firestore().doc("areas/greater_boston").get()
