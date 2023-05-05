@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable max-len */
 import * as functions from "../node_modules/firebase-functions";
 import * as admin from "../node_modules/firebase-admin";
@@ -7,24 +8,36 @@ import {getAuth} from "firebase-admin/auth";
 
 admin.initializeApp();
 
-const firebase = admin.initializeApp();
+// const firebase = admin.initializeApp();
 const db = fb.getFirestore();
 
 const batch = db.batch();
 
-type Usuario = {
-  nome: string,
-  email: string,
-  telefone: string,
-  fcmToken: string | undefined,
-  uid: string,
-}
 
-type CustomResponse = {
-  status: string | unknown,
-  message: string | unknown,
-  payload: unknown,
-}
+// export const registerUid = functions
+//   .region("southamerica-east1")
+//   .auth
+//   .user()
+//   .onCreate((user) =>{
+//     // const uid = user.uid;
+//     const email = user.email;
+
+//     const userRef = db.collection("usuarios").where("email", "==", email);
+//     functions.logger.log(userRef);
+//   });
+// type Usuario = {
+//   nome: string,
+//   email: string,
+//   telefone: string,
+//   fcmToken: string | undefined,
+//   uid: string,
+// }
+
+// type CustomResponse = {
+//   status: string | unknown,
+//   message: string | unknown,
+//   payload: unknown,
+// }
 
 // function hasAccountData(data: Usuario) {
 //   if (data.nome != undefined &&
@@ -46,7 +59,8 @@ export const updateUserFcm = functions.
     const fcmtoken = data.fcmtoken;
     const usersRef = db.collection("users");
     const snapshot = await usersRef.where("uid", "==", uid).get();
-
+    functions.logger.log("fcmtoken ->", fcmtoken);
+    functions.logger.log("uid ->", uid);
     snapshot.forEach(async (doc) => {
       const tempRef = db.collection("users").doc(doc.id);
       batch.update(tempRef, {fcmToken: fcmtoken});
