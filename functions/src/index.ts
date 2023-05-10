@@ -189,13 +189,13 @@ export const getUids = functions.region("southamerica-east1").firestore
     // listAllUsers("uid");
   });
 
-// export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
-//   const emergency = data.emergency.toString();
-//   const uid = context.auth?.uid;
-
-//   const emergencyDocRef = db.collection("emergency").doc(emergency);
-//   const res = await emergencyDocRef.update({status: "accepted"});
-// });
+export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
+  const emergency = data.emergency.toString();
+  // const uid = context.auth?.uid;
+  const userName = data.userName.toString();
+  const emergencyDocRef = db.collection("emergency").doc(emergency);
+  (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
+});
 
 // const listAllUsers = (nextPageToken: string | undefined) => {
 //   // List batch of users, 1000 at a time.
