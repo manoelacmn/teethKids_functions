@@ -5,10 +5,7 @@ import * as admin from "../node_modules/firebase-admin";
 import * as fb from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 
-
 admin.initializeApp();
-
-// const firebase = admin.initializeApp();
 const db = fb.getFirestore();
 
 // const batch = db.batch();
@@ -191,30 +188,19 @@ export const getUids = functions.region("southamerica-east1").firestore
 
 export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
   const emergency = data.emergency.toString();
-  // const uid = context.auth?.uid;
   const userName = data.userName.toString();
-  const emergencyDocRef = db.collection("emergency").doc(emergency);
-  (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
+  const emergencyRef = db.collection("emergencias");
+  functions.logger.log(`USERNAME  = ${userName}`);
+  functions.logger.log(`UID  = ${emergency}`);
+  const snapshot = await emergencyRef.where("uid", "==", emergency).get();
+  snapshot.forEach(async (doc) => {
+    functions.logger.log("docID ->", doc.id);
+    const tempRef = db.collection("emergencias").doc(doc.id);
+    const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+    functions.logger.log(res);
+  });
+  // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
 });
-
-// const listAllUsers = (nextPageToken: string | undefined) => {
-//   // List batch of users, 1000 at a time.
-//   getAuth()
-//     .listUsers(1000, nextPageToken)
-//     .then((listUsersResult) => {
-//       listUsersResult.users.forEach((userRecord) => {
-//         console.log("user", userRecord.toJSON());
-//       });
-//       if (listUsersResult.pageToken) {
-//         // List next batch of users.
-//         listAllUsers(listUsersResult.pageToken);
-//       }
-//     })
-//     .catch((error) => {
-//       console.log("Error listing users:", error);
-//     });
-// };
-// Start listing users from the beginning, 1000 at a time.
 
 
 export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {
