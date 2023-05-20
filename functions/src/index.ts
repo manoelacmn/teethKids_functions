@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable max-len */
-import * as functions from "../node_modules/firebase-functions";
-import * as admin from "../node_modules/firebase-admin";
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 import * as fb from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 
@@ -188,17 +188,21 @@ export const getUids = functions.region("southamerica-east1").firestore
 
 export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
   const emergency = data.emergency.toString();
-  const userName = data.userName.toString();
+  const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
   const emergencyRef = db.collection("emergencias");
   functions.logger.log(`USERNAME  = ${userName}`);
   functions.logger.log(`UID  = ${emergency}`);
-  const snapshot = await emergencyRef.where("uid", "==", emergency).get();
+  let snapshot = await emergencyRef.where("uid", "==", emergency).get();
   snapshot.forEach(async (doc) => {
     functions.logger.log("docID ->", doc.id);
     const tempRef = db.collection("emergencias").doc(doc.id);
-    const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+    // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+    const res = await tempRef.update({acceptedBy: fb.FieldValue.arrayUnion(userName)});
     functions.logger.log(res);
   });
+  snapshot = await emergencyRef.where("uid", "==", emergency).get();
+
+
   // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
 });
 
@@ -215,3 +219,21 @@ export const getData = functions.region("southamerica-east1").https.onRequest((r
   });
 });
 
+export const refuseEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
+  const emergency = data.emergency.toString();
+  const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
+  const emergencyRef = db.collection("emergencias");
+  functions.logger.log(`USERNAME  = ${userName}`);
+  functions.logger.log(`UID  = ${emergency}`);
+  let snapshot = await emergencyRef.where("uid", "==", emergency).get();
+  snapshot.forEach(async (doc) => {
+    functions.logger.log("docID ->", doc.id);
+    const tempRef = db.collection("emergencias").doc(doc.id);
+    (await tempRef.update({refusedBy: fb.FieldValue.arrayUnion(userName)}));
+    // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+  });
+  snapshot = await emergencyRef.where("uid", "==", emergency).get();
+
+
+  // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
+});
