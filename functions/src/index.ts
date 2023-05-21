@@ -237,3 +237,52 @@ export const refuseEmergency = functions.region("southamerica-east1").https.onCa
 
   // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
 });
+
+
+export const updateUserInfo = functions.region("southamerica-east1").https.onCall(async (data, context) => {
+  // const email = data.email;
+  const userUid = data.userUid;
+  const name = data.name;
+  const phoneNumber = data.phoneNumber;
+  const curriculum = data.curriculum;
+  const status = data.status;
+  const address1 = data.address1;
+  const address2 = data.address2;
+  const address3 = data.address3;
+
+  const updateData: Record<string, any> = {};
+
+  if (phoneNumber !== undefined) {
+    updateData.telefone = phoneNumber;
+  }
+
+  if (name !== undefined) {
+    updateData.name = name;
+  }
+
+  if (curriculum !== undefined) {
+    updateData.curriculo = curriculum;
+  }
+
+  if (status !== undefined) {
+    updateData.status = status;
+  }
+
+  if (address1 !== undefined || address2 !== undefined || address3 !== undefined) {
+    updateData.endereços = fb.FieldValue.arrayUnion(
+      ...(address1 !== undefined ? [address1] : []),
+      ...(address2 !== undefined ? [address2] : []),
+      ...(address3 !== undefined ? [address3] : [])
+    );
+  }
+
+  const usersRef = db.collection("usuarios");
+  const snapshot = await usersRef.where("uid", "==", userUid).get();
+  snapshot.forEach(async (doc) => {
+    functions.logger.log("docID ->", doc.id);
+    const tempRef = db.collection("usuarios").doc(doc.id);
+    // const res = await tempRef.update({telefone: phoneNumber, name: name, curriculo: curriculum, status: status, endereços: fb.FieldValue.arrayUnion(address1, address2, address3)});
+    const res = await tempRef.update(updateData);
+    functions.logger.log(res);
+  });
+});
