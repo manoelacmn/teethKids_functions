@@ -202,21 +202,63 @@ export const acceptEmergency = functions.region("southamerica-east1").https.onCa
   });
   snapshot = await emergencyRef.where("uid", "==", emergency).get();
 
-
   // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
 });
 
 
-export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {
-  const promise = admin.firestore().doc("emergency/HsPgBiSxc9WtxhWp2aUL").get();
-  const p2 = promise.then((snapshot) => {
-    const data = snapshot.data();
-    res.send(data);
+// export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {
+//   const promise = admin.firestore().doc("emergency/HsPgBiSxc9WtxhWp2aUL").get();
+//   const p2 = promise.then((snapshot) => {
+//     const data = snapshot.data();
+//     res.send(data);
+//   });
+//   p2.catch((err) => {
+//     console.log(err);
+//     res.status(500).send(err);
+//   });
+// });
+
+export const getData = functions.region("southamerica-east1").https.onCall(async (data, context)=> {
+  const emergencyUid = data.emergency.toString();
+  const emergencyRef = db.collection("emergencias");
+  const snapshot = await emergencyRef.where("uid", "==", emergencyUid).get();
+  const list: admin.firestore.DocumentData[] = [];
+  snapshot.forEach(async (doc) => {
+    list.push(doc.data());
   });
-  p2.catch((err) => {
-    console.log(err);
-    res.status(500).send(err);
+  functions.logger.log("EMERGENCY INFO =>");
+  functions.logger.log(JSON.stringify(list).toString());
+  return JSON.stringify(list);
+});
+
+
+export const listAllEmergencies = functions.region("southamerica-east1").https.onCall(async (req, res) => {
+  const emergencyRef = db.collection("emergencias");
+  const snapshot = await emergencyRef.where("status", "==", "new").get();
+  const list: admin.firestore.DocumentData[] = [];
+  snapshot.forEach((doc) => {
+    list.push(doc.data());
+    functions.logger.log("DOC DATA ---->", doc.data());
+    functions.logger.log("LIST ----->", list);
   });
+  return list;
+});
+
+exports.listAllEmergencies1 = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
+  try {
+    const emergencyRef = admin.firestore().collection("emergencias");
+    const snapshot = await emergencyRef.where("status", "==", "new").get();
+    const list: admin.firestore.DocumentData[] = [];
+    snapshot.forEach((doc) => {
+      list.push(doc.data());
+      functions.logger.log("DOC DATA ---->", doc.data());
+      functions.logger.log("LIST ----->", list);
+    });
+    res.status(200).json(list);
+  } catch (error) {
+    console.error("Error listing emergencies:", error);
+    res.status(500).send("Error listing emergencies");
+  }
 });
 
 export const refuseEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
