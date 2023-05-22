@@ -93,7 +93,7 @@ export const updateUserFcm = functions.
 
 export const notifyEmergency = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
   const users = db.collection("users");
-  const snapshot = await users.get();
+  const snapshot = await users.where("staus", "!=", "offline").get();
   // const uids: any[] = [];
   snapshot.forEach((doc) => {
     const field = doc.data().uid;
@@ -275,14 +275,16 @@ export const updateUserInfo = functions.region("southamerica-east1").https.onCal
       ...(address3 !== undefined ? [address3] : [])
     );
   }
-
+  functions.logger.log("DOC ID ->", updateData);
   const usersRef = db.collection("usuarios");
-  const snapshot = await usersRef.where("uid", "==", userUid).get();
+  functions.logger.log("UPDATE ->", updateData);
+  functions.logger.log("USER UID ->", userUid);
+  const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
   snapshot.forEach(async (doc) => {
     functions.logger.log("docID ->", doc.id);
     const tempRef = db.collection("usuarios").doc(doc.id);
-    // const res = await tempRef.update({telefone: phoneNumber, name: name, curriculo: curriculum, status: status, endereços: fb.FieldValue.arrayUnion(address1, address2, address3)});
+    functions.logger.log(tempRef.toString());
     const res = await tempRef.update(updateData);
-    functions.logger.log(res);
+    functions.logger.log(res.toString());
   });
 });
