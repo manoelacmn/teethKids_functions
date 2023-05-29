@@ -135,6 +135,8 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
           data: {
             text: "new emegency",
             uid: newEmergency.uid,
+            nome: newEmergency.nome,
+            ImageRoot: newEmergency.ImageRoot,
           },
           token: field,
         };
@@ -292,7 +294,15 @@ export const updateUserInfo = functions.region("southamerica-east1").https.onCal
   const address2 = data.address2;
   const address3 = data.address3;
 
-  const updateData: Record<string, any> = {};
+  type UpdateData = {
+    telefone?: any;
+    name?: any;
+    curriculo?: any;
+    status?: any;
+    endereços?: any;
+  };
+
+  const updateData: UpdateData = {};
 
   if (phoneNumber !== undefined) {
     updateData.telefone = phoneNumber;
@@ -317,6 +327,7 @@ export const updateUserInfo = functions.region("southamerica-east1").https.onCal
       ...(address3 !== undefined ? [address3] : [])
     );
   }
+
   functions.logger.log("DOC ID ->", updateData);
   const usersRef = db.collection("usuarios");
   functions.logger.log("UPDATE ->", updateData);
