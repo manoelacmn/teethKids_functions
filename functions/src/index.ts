@@ -4,12 +4,12 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as fb from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
+// import firebase from "firebase/compat/app";
 
 admin.initializeApp();
 const db = fb.getFirestore();
 
 // const batch = db.batch();
-
 
 // export const registerUid = functions
 //   .region("southamerica-east1")
@@ -55,11 +55,9 @@ const db = fb.getFirestore();
 
 //   });
 
-
-export const updateUserFcm = functions.
-  region("southamerica-east1")
-  .https.
-  onCall(async (data, context) => {
+export const updateUserFcm = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
     const email = data.email;
     const fcmtoken = data.fcmtoken;
     const usersRef = db.collection("usuarios");
@@ -90,18 +88,19 @@ export const updateUserFcm = functions.
 //       });
 //   });
 
-
-export const notifyEmergency = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
-  const users = db.collection("users");
-  const snapshot = await users.where("staus", "!=", "offline").get();
-  // const uids: any[] = [];
-  snapshot.forEach((doc) => {
-    const field = doc.data().uid;
-    // uids.push(field);
-    console.log(doc.id, "=>", field);
+export const notifyEmergency = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+    const users = db.collection("users");
+    const snapshot = await users.where("staus", "!=", "offline").get();
+    // const uids: any[] = [];
+    snapshot.forEach((doc) => {
+      const field = doc.data().uid;
+      // uids.push(field);
+      console.log(doc.id, "=>", field);
+    });
+    // console.log(uids.toString());
   });
-  // console.log(uids.toString());
-});
 
 // export const notifyEmergency = functions.firestore.document("emergency/{any}")
 //   .onCreate( (change, context) => {
@@ -115,9 +114,9 @@ export const notifyEmergency = functions.region("southamerica-east1").https.onRe
 //     });
 //   });
 
-
-export const getEmergencies = functions.region("southamerica-east1").firestore
-  .document("emergencias/{any}")
+export const getEmergencies = functions
+  .region("southamerica-east1")
+  .firestore.document("emergencias/{any}")
   .onCreate(async (snap, context) => {
     functions.logger.log("nova emergencia");
     const newEmergency = snap.data();
@@ -138,13 +137,11 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
           },
           token: field,
         };
-        (await admin.messaging().send(message));
+        await admin.messaging().send(message);
         console.log(newEmergency.uid, "=>", field);
         functions.logger.log(newEmergency.uid, "=>", field);
-      // eslint-disable-next-line no-empty
-      } catch {
-
-      }
+        // eslint-disable-next-line no-empty
+      } catch {}
     });
   });
 // export const getAll = functions.https.onRequest((req, res) => {
@@ -160,8 +157,9 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
 //     });
 // });
 
-export const getUids = functions.region("southamerica-east1").firestore
-  .document("emergency/{any}")
+export const getUids = functions
+  .region("southamerica-east1")
+  .firestore.document("emergency/{any}")
   .onCreate(async (snap, context) => {
     const listAllUsers = (nextPageToken: string | undefined) => {
       // List batch of users, 1000 at a time.
@@ -186,25 +184,28 @@ export const getUids = functions.region("southamerica-east1").firestore
     // listAllUsers("uid");
   });
 
-export const acceptEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
-  const emergency = data.emergency.toString();
-  const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
-  const emergencyRef = db.collection("emergencias");
-  functions.logger.log(`USERNAME  = ${userName}`);
-  functions.logger.log(`UID  = ${emergency}`);
-  let snapshot = await emergencyRef.where("uid", "==", emergency).get();
-  snapshot.forEach(async (doc) => {
-    functions.logger.log("docID ->", doc.id);
-    const tempRef = db.collection("emergencias").doc(doc.id);
-    // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
-    const res = await tempRef.update({acceptedBy: fb.FieldValue.arrayUnion(userName)});
-    functions.logger.log(res);
+export const acceptEmergency = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const emergency = data.emergency.toString();
+    const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
+    const emergencyRef = db.collection("emergencias");
+    functions.logger.log(`USERNAME  = ${userName}`);
+    functions.logger.log(`UID  = ${emergency}`);
+    let snapshot = await emergencyRef.where("uid", "==", emergency).get();
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("emergencias").doc(doc.id);
+      // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+      const res = await tempRef.update({
+        acceptedBy: fb.FieldValue.arrayUnion(userName),
+      });
+      functions.logger.log(res);
+    });
+    snapshot = await emergencyRef.where("uid", "==", emergency).get();
+
+    // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
   });
-  snapshot = await emergencyRef.where("uid", "==", emergency).get();
-
-  // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
-});
-
 
 // export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {
 //   const promise = admin.firestore().doc("emergency/HsPgBiSxc9WtxhWp2aUL").get();
@@ -218,35 +219,25 @@ export const acceptEmergency = functions.region("southamerica-east1").https.onCa
 //   });
 // });
 
-export const getData = functions.region("southamerica-east1").https.onCall(async (data, context)=> {
-  const emergencyUid = data.emergency.toString();
-  const emergencyRef = db.collection("emergencias");
-  const snapshot = await emergencyRef.where("uid", "==", emergencyUid).get();
-  const list: admin.firestore.DocumentData[] = [];
-  snapshot.forEach(async (doc) => {
-    list.push(doc.data());
+export const getData = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const emergencyUid = data.emergency.toString();
+    const emergencyRef = db.collection("emergencias");
+    const snapshot = await emergencyRef.where("uid", "==", emergencyUid).get();
+    const list: admin.firestore.DocumentData[] = [];
+    snapshot.forEach(async (doc) => {
+      list.push(doc.data());
+    });
+    functions.logger.log("EMERGENCY INFO =>");
+    functions.logger.log(JSON.stringify(list).toString());
+    return JSON.stringify(list);
   });
-  functions.logger.log("EMERGENCY INFO =>");
-  functions.logger.log(JSON.stringify(list).toString());
-  return JSON.stringify(list);
-});
 
-
-export const listAllEmergencies = functions.region("southamerica-east1").https.onCall(async (req, res) => {
-  const emergencyRef = db.collection("emergencias");
-  const snapshot = await emergencyRef.where("status", "==", "new").get();
-  const list: admin.firestore.DocumentData[] = [];
-  snapshot.forEach((doc) => {
-    list.push(doc.data());
-    functions.logger.log("DOC DATA ---->", doc.data());
-    functions.logger.log("LIST ----->", list);
-  });
-  return list;
-});
-
-exports.listAllEmergencies1 = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
-  try {
-    const emergencyRef = admin.firestore().collection("emergencias");
+export const listAllEmergencies = functions
+  .region("southamerica-east1")
+  .https.onCall(async (req, res) => {
+    const emergencyRef = db.collection("emergencias");
     const snapshot = await emergencyRef.where("status", "==", "new").get();
     const list: admin.firestore.DocumentData[] = [];
     snapshot.forEach((doc) => {
@@ -254,79 +245,144 @@ exports.listAllEmergencies1 = functions.region("southamerica-east1").https.onReq
       functions.logger.log("DOC DATA ---->", doc.data());
       functions.logger.log("LIST ----->", list);
     });
-    res.status(200).json(list);
-  } catch (error) {
-    console.error("Error listing emergencies:", error);
-    res.status(500).send("Error listing emergencies");
-  }
-});
-
-export const refuseEmergency = functions.region("southamerica-east1").https.onCall(async (data, context) => {
-  const emergency = data.emergency.toString();
-  const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
-  const emergencyRef = db.collection("emergencias");
-  functions.logger.log(`USERNAME  = ${userName}`);
-  functions.logger.log(`UID  = ${emergency}`);
-  let snapshot = await emergencyRef.where("uid", "==", emergency).get();
-  snapshot.forEach(async (doc) => {
-    functions.logger.log("docID ->", doc.id);
-    const tempRef = db.collection("emergencias").doc(doc.id);
-    (await tempRef.update({refusedBy: fb.FieldValue.arrayUnion(userName)}));
-    // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+    return list;
   });
-  snapshot = await emergencyRef.where("uid", "==", emergency).get();
 
-
-  // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
-});
-
-
-export const updateUserInfo = functions.region("southamerica-east1").https.onCall(async (data, context) => {
-  // const email = data.email;
-  const userUid = data.userUid;
-  const name = data.name;
-  const phoneNumber = data.phoneNumber;
-  const curriculum = data.curriculum;
-  const status = data.status;
-  const address1 = data.address1;
-  const address2 = data.address2;
-  const address3 = data.address3;
-
-  const updateData: Record<string, any> = {};
-
-  if (phoneNumber !== undefined) {
-    updateData.telefone = phoneNumber;
-  }
-
-  if (name !== undefined) {
-    updateData.name = name;
-  }
-
-  if (curriculum !== undefined) {
-    updateData.curriculo = curriculum;
-  }
-
-  if (status !== undefined) {
-    updateData.status = status;
-  }
-
-  if (address1 !== undefined || address2 !== undefined || address3 !== undefined) {
-    updateData.endereços = fb.FieldValue.arrayUnion(
-      ...(address1 !== undefined ? [address1] : []),
-      ...(address2 !== undefined ? [address2] : []),
-      ...(address3 !== undefined ? [address3] : [])
-    );
-  }
-  functions.logger.log("DOC ID ->", updateData);
-  const usersRef = db.collection("usuarios");
-  functions.logger.log("UPDATE ->", updateData);
-  functions.logger.log("USER UID ->", userUid);
-  const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
-  snapshot.forEach(async (doc) => {
-    functions.logger.log("docID ->", doc.id);
-    const tempRef = db.collection("usuarios").doc(doc.id);
-    functions.logger.log(tempRef.toString());
-    const res = await tempRef.update(updateData);
-    functions.logger.log(res.toString());
+exports.listAllEmergencies1 = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+    try {
+      const emergencyRef = admin.firestore().collection("emergencias");
+      const snapshot = await emergencyRef.where("status", "==", "new").get();
+      const list: admin.firestore.DocumentData[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data());
+        functions.logger.log("DOC DATA ---->", doc.data());
+        functions.logger.log("LIST ----->", list);
+      });
+      res.status(200).json(list);
+    } catch (error) {
+      console.error("Error listing emergencies:", error);
+      res.status(500).send("Error listing emergencies");
+    }
   });
-});
+
+export const refuseEmergency = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const emergency = data.emergency.toString();
+    const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
+    const emergencyRef = db.collection("emergencias");
+    functions.logger.log(`USERNAME  = ${userName}`);
+    functions.logger.log(`UID  = ${emergency}`);
+    let snapshot = await emergencyRef.where("uid", "==", emergency).get();
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("emergencias").doc(doc.id);
+      await tempRef.update({refusedBy: fb.FieldValue.arrayUnion(userName)});
+      // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
+    });
+    snapshot = await emergencyRef.where("uid", "==", emergency).get();
+
+    // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
+  });
+
+// export const getUidDoctors = functions
+//   .region("southamerica-east1")
+//   .https.onCall(async (data, context) => {
+//     const docsID = db.collection("emergencias");
+//     const snapshot = await docsID.get();
+//     const list: admin.firestore.DocumentData[] = [];
+//     snapshot.forEach((doc) => {
+//       console.log("=>", doc.data());
+//       functions.logger.log("");
+//       list.push(doc.data().uid);
+//     });
+//   });
+
+export const getAcceptedBy = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const uid = data.uid;
+
+    const emergencyRef = db.collection("emergencias");
+    const query = await emergencyRef.where("uid", "==", uid).get();
+
+    query.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      // const tempRef = db.collection("emergencias").doc(doc.id);
+      functions.logger.log("DATA: ->", doc.data().acceptedBy);
+    });
+  });
+
+// document.addEventListener("DOMContentLoaded", function () {
+//   db.settings({ timestampInSnapshots: true });
+
+//   const col = db.collection("emergencias");
+
+//   const query = col.where("acceptedBy");
+
+//   query.get().then((snapshot) => {
+//     snapshot.docs.forEach((doc) => {
+//       console.log(doc.id, doc.data());
+//     });
+//   });
+// });
+
+export const updateUserInfo = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    // const email = data.email;
+    const userUid = data.userUid;
+    const name = data.name;
+    const phoneNumber = data.phoneNumber;
+    const curriculum = data.curriculum;
+    const status = data.status;
+    const address1 = data.address1;
+    const address2 = data.address2;
+    const address3 = data.address3;
+
+    const updateData: Record<string, any> = {};
+
+    if (phoneNumber !== undefined) {
+      updateData.telefone = phoneNumber;
+    }
+
+    if (name !== undefined) {
+      updateData.name = name;
+    }
+
+    if (curriculum !== undefined) {
+      updateData.curriculo = curriculum;
+    }
+
+    if (status !== undefined) {
+      updateData.status = status;
+    }
+
+    if (
+      address1 !== undefined ||
+      address2 !== undefined ||
+      address3 !== undefined
+    ) {
+      updateData.endereços = fb.FieldValue.arrayUnion(
+        ...(address1 !== undefined ? [address1] : []),
+        ...(address2 !== undefined ? [address2] : []),
+        ...(address3 !== undefined ? [address3] : [])
+      );
+    }
+    functions.logger.log("DOC ID ->", updateData);
+    const usersRef = db.collection("usuarios");
+    functions.logger.log("UPDATE ->", updateData);
+    functions.logger.log("USER UID ->", userUid);
+    const snapshot = await usersRef
+      .where("uid", "==", userUid.toString())
+      .get();
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("usuarios").doc(doc.id);
+      functions.logger.log(tempRef.toString());
+      const res = await tempRef.update(updateData);
+      functions.logger.log(res.toString());
+    });
+  });

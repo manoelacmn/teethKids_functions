@@ -1,8 +1,9 @@
 {
   "projects": {
-    "default": "forcodelabs",
+    "default": "teethkids-10c6a",
     "teethkids": "teethkids-10c6a",
-    "teethKids": "teethkids-10c6a"
+    "teethKids": "teethkids-10c6a",
+    "teeth-kids": "teethkids-10c6a"
   },
   "targets": {},
   "etags": {}
