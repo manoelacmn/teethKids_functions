@@ -134,6 +134,8 @@ export const getEmergencies = functions
           data: {
             text: "new emegency",
             uid: newEmergency.uid,
+            nome: newEmergency.nome,
+            ImageRoot: newEmergency.ImageRoot,
           },
           token: field,
         };
@@ -342,7 +344,15 @@ export const updateUserInfo = functions
     const address2 = data.address2;
     const address3 = data.address3;
 
-    const updateData: Record<string, any> = {};
+  type UpdateData = {
+    telefone?: any;
+    name?: any;
+    curriculo?: any;
+    status?: any;
+    endereços?: any;
+  };
+
+  const updateData: UpdateData = {};
 
     if (phoneNumber !== undefined) {
       updateData.telefone = phoneNumber;
@@ -360,29 +370,24 @@ export const updateUserInfo = functions
       updateData.status = status;
     }
 
-    if (
-      address1 !== undefined ||
-      address2 !== undefined ||
-      address3 !== undefined
-    ) {
-      updateData.endereços = fb.FieldValue.arrayUnion(
-        ...(address1 !== undefined ? [address1] : []),
-        ...(address2 !== undefined ? [address2] : []),
-        ...(address3 !== undefined ? [address3] : [])
-      );
-    }
-    functions.logger.log("DOC ID ->", updateData);
-    const usersRef = db.collection("usuarios");
-    functions.logger.log("UPDATE ->", updateData);
-    functions.logger.log("USER UID ->", userUid);
-    const snapshot = await usersRef
-      .where("uid", "==", userUid.toString())
-      .get();
-    snapshot.forEach(async (doc) => {
-      functions.logger.log("docID ->", doc.id);
-      const tempRef = db.collection("usuarios").doc(doc.id);
-      functions.logger.log(tempRef.toString());
-      const res = await tempRef.update(updateData);
-      functions.logger.log(res.toString());
-    });
+  if (address1 !== undefined || address2 !== undefined || address3 !== undefined) {
+    updateData.endereços = fb.FieldValue.arrayUnion(
+      ...(address1 !== undefined ? [address1] : []),
+      ...(address2 !== undefined ? [address2] : []),
+      ...(address3 !== undefined ? [address3] : [])
+    );
+  }
+
+  functions.logger.log("DOC ID ->", updateData);
+  const usersRef = db.collection("usuarios");
+  functions.logger.log("UPDATE ->", updateData);
+  functions.logger.log("USER UID ->", userUid);
+  const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
+  snapshot.forEach(async (doc) => {
+    functions.logger.log("docID ->", doc.id);
+    const tempRef = db.collection("usuarios").doc(doc.id);
+    functions.logger.log(tempRef.toString());
+    const res = await tempRef.update(updateData);
+    functions.logger.log(res.toString());
   });
+});
