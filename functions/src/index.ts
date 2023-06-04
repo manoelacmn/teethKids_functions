@@ -282,6 +282,88 @@ export const refuseEmergency = functions.region("southamerica-east1").https.onCa
   // (await emergencyDocRef.update({status: "accepted", acceptedBy: userName}));
 });
 
+export const getAcceptedBy = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const uid = data.uid;
+
+    const usersRef = db.collection("usuarios");
+    const emergencyRef = db.collection("emergencias");
+    const query = await emergencyRef.where("uid", "==", uid).get();
+    functions.logger.log("UID --->");
+    const list: admin.firestore.DocumentData[] = [];
+    query.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      functions.logger.log("DATA: ->", doc.data().acceptedBy);
+      const acceptants = doc.data().acceptedBy;
+      acceptants.forEach( async (uid : any) => {
+        functions.logger.log(uid);
+        const queryDentist = await usersRef.where("uid", "==", uid).get();
+        queryDentist.forEach(async (doc1) => {
+          functions.logger.log(doc1.data());
+          list.push(doc1.data());
+        });
+      });
+    });
+    functions.logger.log(list);
+  });
+
+
+export const TESTgetAcceptedBy = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+    const uid = req.body.uid;
+
+    const usersRef = db.collection("usuarios");
+    const emergencyRef = db.collection("emergencias");
+    const query = await emergencyRef.where("uid", "==", uid).get();
+    functions.logger.log("UID --->");
+    const list: admin.firestore.DocumentData[] = [];
+    query.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      functions.logger.log("DATA: ->", doc.data().acceptedBy);
+      const acceptants = doc.data().acceptedBy;
+      acceptants.forEach( async (uid : any) => {
+        functions.logger.log(uid);
+        const queryDentist = await usersRef.where("uid", "==", uid).get();
+        queryDentist.forEach(async (doc1) => {
+          functions.logger.log(doc1.data());
+          list.push(doc1.data());
+        });
+      });
+    });
+    functions.logger.log(list);
+  });
+
+export const acceptDentist = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const uidDentist = data.dentist;
+    const uidEmergency = data.emergency;
+    const dentistRf = db.collection("usuarios");
+    const emergencyRef = db.collection("emergencias");
+    const query = await emergencyRef.where("uid", "==", uidEmergency).get();
+    const query1 = await dentistRf.where("uid", "==", uidDentist).get();
+    query.forEach(async (doc) => {
+      const tempRef = emergencyRef.doc(doc.id);
+      (await tempRef.update({selectedDentist: uidDentist}));
+      functions.logger.log("docID ->", doc.id);
+      functions.logger.log("DATA: ->", doc.data().acceptedBy);
+    });
+    const myMap = new Map<string, string>();
+
+    // Adding key-value pairs to the Map
+    // myMap.set(1, "Apple");
+    // myMap.set(2, "Banana");
+    // myMap.set(3, "Orange");
+    myMap.set("emergencyUid", uidEmergency);
+    myMap.set("timestamp", fb.FieldValue.serverTimestamp().toString());
+    query1.forEach(async (doc) => {
+      const tempRef = dentistRf.doc(doc.id);
+      (await tempRef.update({history: fb.FieldValue.arrayUnion(myMap)}));
+    });
+  });
+
 
 export const updateUserInfo = functions.region("southamerica-east1").https.onCall(async (data, context) => {
   // const email = data.email;
