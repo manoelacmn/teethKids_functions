@@ -60,12 +60,11 @@ export const updateUserFcm = functions.
   region("southamerica-east1")
   .https.
   onCall(async (data, context) => {
-    const email = data.email;
+    const uid = data.uid;
     const fcmtoken = data.fcmtoken;
     const usersRef = db.collection("usuarios");
-    const snapshot = await usersRef.where("email", "==", email).get();
+    const snapshot = await usersRef.where("uid", "==", uid).get();
     functions.logger.log("fcmtoken ->", fcmtoken);
-    functions.logger.log("email ->", email);
     snapshot.forEach(async (doc) => {
       functions.logger.log("docID ->", doc.id);
       const tempRef = db.collection("usuarios").doc(doc.id);
@@ -125,6 +124,7 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
             uid: newEmergency.uid,
             nome: newEmergency.nome,
             ImageRoot: newEmergency.ImageRoot1,
+            code: "1",
           },
           token: field,
         };
@@ -132,9 +132,13 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
         functions.logger.log(message.toString());
         console.log(newEmergency.uid, "=>", field);
         functions.logger.log(newEmergency.uid, "=>", field);
-      // eslint-disable-next-line no-empty
-      } catch {
-
+        // eslint-disable-next-line no-empty
+        const timestampField = {
+          timeStamp: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        await snap.ref.update(timestampField);
+      } catch (err) {
+        functions.logger.log(err);
       }
     });
   });
@@ -181,14 +185,22 @@ export const acceptEmergency = functions.region("southamerica-east1").https.onCa
   const emergency = data.emergency.toString();
   const userName = data.userName.toString(); // IT SHOULD BE CALLED UID
   const emergencyRef = db.collection("emergencias");
+
+
   functions.logger.log(`USERNAME  = ${userName}`);
   functions.logger.log(`UID  = ${emergency}`);
   let snapshot = await emergencyRef.where("uid", "==", emergency).get();
   snapshot.forEach(async (doc) => {
     functions.logger.log("docID ->", doc.id);
     const tempRef = db.collection("emergencias").doc(doc.id);
-    // const res = await tempRef.update({status: "in procedure", acceptedBy: userName});
     const res = await tempRef.update({acceptedBy: fb.FieldValue.arrayUnion(userName)});
+    // snapshot.forEach((doc) => {
+    //   list.push(doc.data());
+    //   functions.logger.log("DOC DATA ---->", doc.data());
+    //   functions.logger.log("LIST ----->", list);
+    // });
+    // return list;
+
     functions.logger.log(res);
   });
   snapshot = await emergencyRef.where("uid", "==", emergency).get();
@@ -285,12 +297,12 @@ export const getAcceptedBy = functions
       functions.logger.log("docID ->", doc.id);
       functions.logger.log("DATA: ->", doc.data().acceptedBy);
       const acceptants = doc.data().acceptedBy;
+      list.push(doc.data().acceptedBy);
       acceptants.forEach( async (uid : any) => {
         functions.logger.log(uid);
         const queryDentist = await usersRef.where("uid", "==", uid).get();
         queryDentist.forEach(async (doc1) => {
           functions.logger.log(doc1.data());
-          list.push(doc1.data());
         });
       });
     });
@@ -334,23 +346,54 @@ export const acceptDentist = functions
     const emergencyRef = db.collection("emergencias");
     const query = await emergencyRef.where("uid", "==", uidEmergency).get();
     const query1 = await dentistRf.where("uid", "==", uidDentist).get();
+
+    let emergencyPATH = "";
+    let emegencyName: string;
+
+    const list: admin.firestore.DocumentData[] = [];
+
+
     query.forEach(async (doc) => {
+      emergencyPATH = doc.ref.path;
+      list.push(doc.data());
+      emegencyName = doc.data().nome;
       const tempRef = emergencyRef.doc(doc.id);
       (await tempRef.update({selectedDentist: uidDentist}));
       functions.logger.log("docID ->", doc.id);
       functions.logger.log("DATA: ->", doc.data().acceptedBy);
     });
-    const myMap = new Map<string, string>();
 
-    // Adding key-value pairs to the Map
-    // myMap.set(1, "Apple");
-    // myMap.set(2, "Banana");
-    // myMap.set(3, "Orange");
-    myMap.set("emergencyUid", uidEmergency);
+    const myMap = new Map<string, string>();
+    myMap.set("emergencyPATH", emergencyPATH);
     myMap.set("timestamp", fb.FieldValue.serverTimestamp().toString());
     query1.forEach(async (doc) => {
       const tempRef = dentistRf.doc(doc.id);
-      (await tempRef.update({history: fb.FieldValue.arrayUnion(myMap)}));
+      (await tempRef.update({
+        "history": fb.FieldValue.arrayUnion(emergencyPATH),
+        "current.emergencyPATH": emergencyPATH,
+        "current.timestamp": fb.FieldValue.serverTimestamp().toString(),
+        "status": "busy",
+        "current": fb.FieldValue.arrayUnion(myMap)}));
+
+      const message: admin.messaging.Message = {
+        data: {
+          text: "Você foi escolhido para essa emergência",
+          uid: uidEmergency,
+          nome: emegencyName.toString(),
+          ImageRoot: emergencyPATH.toString(),
+          code: "0",
+        },
+        token: doc.data().fcmToken,
+      };
+      // const message: admin.messaging.Message = {
+      //   notification: {
+      //     title: 'New Message',
+      //     body: 'You have received a new message.'
+      //   },
+      //   token:  doc.data().fcmToken
+      // };
+
+      (await admin.messaging().send(message));
     });
   });
 
@@ -435,7 +478,7 @@ export const updateAdress = functions
       numero: number,
     }
 
-    const uwu: address = {
+    const Address: address = {
       rua: rua,
       cep: cep,
       cidade: cidade,
@@ -451,8 +494,68 @@ export const updateAdress = functions
       const tempRef = db.collection("usuarios").doc(doc.id);
       functions.logger.log(tempRef.toString());
       (await tempRef.update({
-        [`addresses.${adressId}`]: uwu,
+        [`addresses.${adressId}`]: Address,
       }));
     });
   });
 
+
+export const getAdress = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const userUid = data.userUid;
+    const rua = data.rua;
+    const cep = data.cep;
+    const cidade = data.cidade;
+    const estado = data.estado;
+    const bairro = data.bairro;
+    const numero = data.numero;
+    const adressId = data.adressId;
+
+    type address ={
+      rua : string,
+      cep: string,
+      cidade: string,
+      estado: string
+      bairro: string,
+      numero: number,
+    }
+
+    const Address: address = {
+      rua: rua,
+      cep: cep,
+      cidade: cidade,
+      estado: estado,
+      bairro: bairro,
+      numero: numero,
+    };
+
+    const usersRef = db.collection("usuarios");
+    const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("usuarios").doc(doc.id);
+      functions.logger.log(tempRef.toString());
+      (await tempRef.update({
+        [`addresses.${adressId}`]: Address,
+      }));
+    });
+  });
+
+export const isBusy = functions.region("southamerica-east1").https.onCall(async (data, context) => {
+  // const email = data.email;
+  const userUid = data.userUid;
+  const usersRef = db.collection("usuarios");
+  functions.logger.log("USER UID ->", userUid);
+  const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
+  snapshot.forEach(async (doc) => {
+    functions.logger.log("docID ->", doc.id);
+    if (doc.data().status == "busy") {
+      const emergencyKey = doc.data().current.emergencyPATH;
+      functions.logger.log(`EMERGENCY PATH : ${emergencyKey.toString()}`);
+      return emergencyKey.toString();
+    }
+    // const tempRef = db.collection("usuarios").doc(doc.id);
+    // functions.logger.log(tempRef.toString());
+  });
+});
