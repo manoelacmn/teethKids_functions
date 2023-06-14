@@ -450,8 +450,9 @@ export const updateAdress = functions
       functions.logger.log("docID ->", doc.id);
       const tempRef = db.collection("usuarios").doc(doc.id);
       functions.logger.log(tempRef.toString());
-      const res = await tempRef.update({[`arrayField.${adressId}`]: uwu});
-      functions.logger.log(res.toString());
+      (await tempRef.update({
+        [`addresses.${adressId}`]: uwu,
+      }));
     });
   });
 
