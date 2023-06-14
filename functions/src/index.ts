@@ -103,18 +103,6 @@ export const notifyEmergency = functions.region("southamerica-east1").https.onRe
   // console.log(uids.toString());
 });
 
-// export const notifyEmergency = functions.firestore.document("emergency/{any}")
-//   .onCreate( (change, context) => {
-//     const users = db.collection("users");
-//     const snapshot = await users.get();
-//     const uids: any[] = [];
-//     snapshot.forEach((doc) => {
-//       const field = doc.data().uid;
-//       uids.push(field);
-//       console.log(doc.id, "=>", field);
-//     });
-//   });
-
 
 export const getEmergencies = functions.region("southamerica-east1").firestore
   .document("emergencias/{any}")
@@ -136,11 +124,12 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
             text: "new emegency",
             uid: newEmergency.uid,
             nome: newEmergency.nome,
-            ImageRoot: newEmergency.ImageRoot,
+            ImageRoot: newEmergency.ImageRoot1,
           },
           token: field,
         };
         (await admin.messaging().send(message));
+        functions.logger.log(message.toString());
         console.log(newEmergency.uid, "=>", field);
         functions.logger.log(newEmergency.uid, "=>", field);
       // eslint-disable-next-line no-empty
@@ -306,6 +295,7 @@ export const getAcceptedBy = functions
       });
     });
     functions.logger.log(list);
+    return list;
   });
 
 
@@ -423,3 +413,45 @@ export const updateUserInfo = functions.region("southamerica-east1").https.onCal
     functions.logger.log(res.toString());
   });
 });
+
+export const updateAdress = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const userUid = data.userUid;
+    const rua = data.rua;
+    const cep = data.cep;
+    const cidade = data.cidade;
+    const estado = data.estado;
+    const bairro = data.bairro;
+    const numero = data.numero;
+    const adressId = data.adressId;
+
+    type address ={
+      rua : string,
+      cep: string,
+      cidade: string,
+      estado: string
+      bairro: string,
+      numero: number,
+    }
+
+    const uwu: address = {
+      rua: rua,
+      cep: cep,
+      cidade: cidade,
+      estado: estado,
+      bairro: bairro,
+      numero: numero,
+    };
+
+    const usersRef = db.collection("usuarios");
+    const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
+    snapshot.forEach(async (doc) => {
+      functions.logger.log("docID ->", doc.id);
+      const tempRef = db.collection("usuarios").doc(doc.id);
+      functions.logger.log(tempRef.toString());
+      const res = await tempRef.update({[`arrayField.${adressId}`]: uwu});
+      functions.logger.log(res.toString());
+    });
+  });
+
