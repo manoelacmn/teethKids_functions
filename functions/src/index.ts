@@ -293,10 +293,12 @@ export const getAcceptedBy = functions
 
     const query = await emergencyRef.where("uid", "==", uid).get();
 
-
     functions.logger.log("UID --->");
     const list: admin.firestore.DocumentData[] = [];
     const list1: admin.firestore.DocumentData[] = [];
+
+    const promises: Promise<void>[] = [];
+
     query.forEach(async (doc) => {
       functions.logger.log("docID ->", doc.id);
       functions.logger.log("DATA: ->", doc.data().acceptedBy.toString());
@@ -306,16 +308,23 @@ export const getAcceptedBy = functions
       list.push(...acceptants);
       functions.logger.log("ACCEPTANTS: ->", acceptants.toString());
       list.push(doc.data().acceptedBy);
-      acceptants.forEach( async (uid : any) => {
+
+      acceptants.forEach((uid: any) => {
         functions.logger.log(uid);
-        const queryDentist = await usersRef.where("uid", "==", uid).get();
-        queryDentist.forEach(async (doc1) => {
-          const data = doc1.data();
-          list1.push(data);
-          functions.logger.log(doc1.data().toString());
+        const queryDentist = usersRef.where("uid", "==", uid).get();
+        const promise = queryDentist.then((snapshot) => {
+          snapshot.forEach((doc1) => {
+            const data = doc1.data();
+            list1.push(data);
+            functions.logger.log(doc1.data().toString());
+          });
         });
+        promises.push(promise);
       });
     });
+
+    await Promise.all(promises); // Wait for all async operations to complete
+
     functions.logger.log(list);
     functions.logger.log(list1);
     return list1;
@@ -615,3 +624,58 @@ export const sendAddress = functions.region("southamerica-east1").https.onCall(a
 
   return address;
 });
+
+export const addAvaliacao = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const {name, rating, text, userUid, emergencyUid} = data;
+
+    try {
+      // Get a Firestore instance
+      const firestore = admin.firestore();
+
+      // Search for a document with matching uid in "avaliacoes" collection
+      const querySnapshot = await firestore
+        .collection("avaliacoes")
+        .where("uid", "==", userUid)
+        .get();
+
+      // Get the first matching document
+      const doc = querySnapshot.docs[0];
+
+      if (doc) {
+        // Document exists, append the new entry to the "avaliacoes" array
+        await doc.ref.update({
+          avaliacoes: admin.firestore.FieldValue.arrayUnion({
+            name: name,
+            rating: rating,
+            text: text,
+            emergencyUid: emergencyUid,
+          }),
+        });
+      } else {
+        // Document doesn't exist, create a new document in "avaliacoes" collection
+        const avaliacaoRef = firestore.collection("avaliacoes").doc();
+
+        // Set the data for the new document with an array containing the new entry
+        await avaliacaoRef.set({
+          uid: userUid,
+          avaliacoes: [
+            {
+              name: name,
+              rating: rating,
+              text: text,
+              emergencyUid: emergencyUid,
+            },
+          ],
+        });
+      }
+
+      // Return a success response
+      return {success: true};
+    } catch (error) {
+      // Return an error response
+      return {success: false, error: error};
+    }
+  });
+
