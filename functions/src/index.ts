@@ -679,3 +679,38 @@ export const addAvaliacao = functions
     }
   });
 
+export const getAvaliacoes = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const {uid} = data;
+
+    try {
+      // Get a Firestore instance
+      const firestore = admin.firestore();
+
+      // Search for a document with matching uid in "avaliacoes" collection
+      const querySnapshot = await firestore
+        .collection("avaliacoes")
+        .where("uid", "==", uid)
+        .get();
+
+      const avaliacoes: { nome: any; rating: any; text: any; }[] = [];
+
+      // Iterate through each document
+      querySnapshot.forEach((doc) => {
+        const avaliacaoData = doc.data();
+        const avaliacao = {
+          nome: avaliacaoData.nome,
+          rating: avaliacaoData.rating,
+          text: avaliacaoData.text,
+        };
+        avaliacoes.push(avaliacao);
+      });
+
+      // Return the retrieved avaliacoes
+      return {avaliacoes: avaliacoes};
+    } catch (error) {
+      // Return an error response
+      return {success: false, error: error};
+    }
+  });
