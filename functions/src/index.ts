@@ -290,24 +290,35 @@ export const getAcceptedBy = functions
 
     const usersRef = db.collection("usuarios");
     const emergencyRef = db.collection("emergencias");
+
     const query = await emergencyRef.where("uid", "==", uid).get();
+
+
     functions.logger.log("UID --->");
     const list: admin.firestore.DocumentData[] = [];
+    const list1: admin.firestore.DocumentData[] = [];
     query.forEach(async (doc) => {
       functions.logger.log("docID ->", doc.id);
-      functions.logger.log("DATA: ->", doc.data().acceptedBy);
-      const acceptants = doc.data().acceptedBy;
+      functions.logger.log("DATA: ->", doc.data().acceptedBy.toString());
+
+      const acceptants: any[] = doc.data().acceptedBy || [];
+
+      list.push(...acceptants);
+      functions.logger.log("ACCEPTANTS: ->", acceptants.toString());
       list.push(doc.data().acceptedBy);
       acceptants.forEach( async (uid : any) => {
         functions.logger.log(uid);
         const queryDentist = await usersRef.where("uid", "==", uid).get();
         queryDentist.forEach(async (doc1) => {
-          functions.logger.log(doc1.data());
+          const data = doc1.data();
+          list1.push(data);
+          functions.logger.log(doc1.data().toString());
         });
       });
     });
     functions.logger.log(list);
-    return list;
+    functions.logger.log(list1);
+    return list1;
   });
 
 
@@ -558,4 +569,49 @@ export const isBusy = functions.region("southamerica-east1").https.onCall(async 
     // const tempRef = db.collection("usuarios").doc(doc.id);
     // functions.logger.log(tempRef.toString());
   });
+});
+
+
+export const sendAddress = functions.region("southamerica-east1").https.onCall(async (data, context) => {
+  const userUid = data.userUid;
+  const usersRef = db.collection("usuarios");
+  const addressID = data.addressID;
+  const emergencyRef = data.emergencyRef;
+
+
+  const snapshot = await usersRef.where("uid", "==", userUid.toString()).get();
+
+  const snapshot1 = await usersRef.where("uid", "==", emergencyRef.toString()).get();
+
+
+  let address = "";
+
+  let fcmToken = "";
+
+  let phoneNumber = "";
+
+  snapshot.forEach((doc) => {
+    functions.logger.log("docID ->", doc.id);
+    phoneNumber = doc.data().telefone;
+    address = doc.data().endereços?.[Number(addressID)];
+  });
+
+  snapshot1.forEach(async (doc) => {
+    const tempRef = db.collection("emergencias").doc(doc.id);
+    fcmToken = doc.data().FCMTOken;
+    (await tempRef.update({dentistAddress: address}));
+  });
+
+  const message: admin.messaging.Message = {
+    data: {
+      "address": address,
+      "phone": phoneNumber,
+    },
+    token: fcmToken,
+  };
+
+
+  (await admin.messaging().send(message));
+
+  return address;
 });
