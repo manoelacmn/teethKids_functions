@@ -194,12 +194,7 @@ export const acceptEmergency = functions.region("southamerica-east1").https.onCa
     functions.logger.log("docID ->", doc.id);
     const tempRef = db.collection("emergencias").doc(doc.id);
     const res = await tempRef.update({acceptedBy: fb.FieldValue.arrayUnion(userName)});
-    // snapshot.forEach((doc) => {
-    //   list.push(doc.data());
-    //   functions.logger.log("DOC DATA ---->", doc.data());
-    //   functions.logger.log("LIST ----->", list);
-    // });
-    // return list;
+
 
     functions.logger.log(res);
   });
@@ -684,33 +679,101 @@ export const getAvaliacoes = functions
   .https.onCall(async (data, context) => {
     const {uid} = data;
 
-    try {
-      // Get a Firestore instance
-      const firestore = admin.firestore();
+    const list: admin.firestore.DocumentData[] = [];
 
-      // Search for a document with matching uid in "avaliacoes" collection
-      const querySnapshot = await firestore
-        .collection("avaliacoes")
-        .where("uid", "==", uid)
-        .get();
+    functions.logger.log("UID USER -----> "+uid);
 
-      const avaliacoes: { nome: any; rating: any; text: any; }[] = [];
+    // Get a Firestore instance
 
-      // Iterate through each document
-      querySnapshot.forEach((doc) => {
-        const avaliacaoData = doc.data();
-        const avaliacao = {
-          nome: avaliacaoData.nome,
-          rating: avaliacaoData.rating,
-          text: avaliacaoData.text,
-        };
-        avaliacoes.push(avaliacao);
+    // Search for a document with matching uid in "avaliacoes" collection
+    const querySnapshot = await db
+      .collection("avaliacoes")
+      .where("uid", "==", uid)
+      .get();
+
+
+    // Iterate through each document
+    querySnapshot.forEach((doc) => {
+      const acceptants: any[] = doc.data().avaliacoes || [];
+      acceptants.forEach((rate) => {
+        functions.logger.log(rate.toString());
+        list.push(rate.toString());
       });
-
-      // Return the retrieved avaliacoes
-      return {avaliacoes: avaliacoes};
-    } catch (error) {
-      // Return an error response
-      return {success: false, error: error};
-    }
+      return list;
+    });
   });
+
+
+export const finishEmergency = functions
+  .region("southamerica-east1")
+  .https.onCall(async (data, context) => {
+    const {uid, emergency} = data;
+
+
+    functions.logger.log("UID USER -----> "+uid);
+
+    // Get a Firestore instance
+
+    // Search for a document with matching uid in "avaliacoes" collection
+    const querySnapshot = await db
+      .collection("avaliacoes")
+      .where("uid", "==", uid)
+      .get();
+
+
+    // Iterate through each document
+    querySnapshot.forEach((doc) => {
+      const acceptants: any[] = doc.data().avaliacoes || [];
+      acceptants.forEach((rate) => {
+        functions.logger.log(rate.toString());
+        list.push(rate.toString());
+      });
+      return list;
+    });
+  });
+// export const getAcceptedBy = functions
+// .region("southamerica-east1")
+// .https.onCall(async (data, context) => {
+//   const uid = data.uid;
+
+//   const usersRef = db.collection("usuarios");
+//   const emergencyRef = db.collection("emergencias");
+
+//   const query = await emergencyRef.where("uid", "==", uid).get();
+
+//   functions.logger.log("UID --->");
+//   const list: admin.firestore.DocumentData[] = [];
+//   const list1: admin.firestore.DocumentData[] = [];
+
+//   const promises: Promise<void>[] = [];
+
+//   query.forEach(async (doc) => {
+//     functions.logger.log("docID ->", doc.id);
+//     functions.logger.log("DATA: ->", doc.data().acceptedBy.toString());
+
+//     const acceptants: any[] = doc.data().acceptedBy || [];
+
+//     list.push(...acceptants);
+//     functions.logger.log("ACCEPTANTS: ->", acceptants.toString());
+//     list.push(doc.data().acceptedBy);
+
+// acceptants.forEach((uid: any) => {
+//   functions.logger.log(uid);
+//   const queryDentist = usersRef.where("uid", "==", uid).get();
+//   const promise = queryDentist.then((snapshot) => {
+//     snapshot.forEach((doc1) => {
+//       const data = doc1.data();
+//       list1.push(data);
+//       functions.logger.log(doc1.data().toString());
+//     });
+//   });
+//   promises.push(promise);
+// });
+//   });
+
+//   await Promise.all(promises); // Wait for all async operations to complete
+
+//   functions.logger.log(list);
+//   functions.logger.log(list1);
+//   return list1;
+// });
