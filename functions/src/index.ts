@@ -425,8 +425,9 @@ export const updateUserInfo = functions.region("southamerica-east1").https.onCal
   snapshot.forEach(async (doc) => {
     functions.logger.log("docID ->", doc.id);
     const tempRef = db.collection("usuarios").doc(doc.id);
+    const res = await tempRef.set(updateData, {merge: true});
+
     functions.logger.log(tempRef.toString());
-    const res = await tempRef.update(updateData);
     functions.logger.log(res.toString());
   });
 });
