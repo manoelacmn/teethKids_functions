@@ -90,19 +90,6 @@ export const updateUserFcm = functions.
 //   });
 
 
-export const notifyEmergency = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
-  const users = db.collection("users");
-  const snapshot = await users.where("staus", "!=", "offline").get();
-  // const uids: any[] = [];
-  snapshot.forEach((doc) => {
-    const field = doc.data().uid;
-    // uids.push(field);
-    console.log(doc.id, "=>", field);
-  });
-  // console.log(uids.toString());
-});
-
-
 export const getEmergencies = functions.region("southamerica-east1").firestore
   .document("emergencias/{any}")
   .onCreate(async (snap, context) => {
@@ -142,18 +129,7 @@ export const getEmergencies = functions.region("southamerica-east1").firestore
       }
     });
   });
-// export const getAll = functions.https.onRequest((req, res) => {
-//   admin.firestore().doc("areas/greater_boston").get()
-//     .then((areaSnapshot) => {
-//       const cities = areaSnapshot.data().cities;
-//       const promises = [];
-//       for (const city in cities) {
-//         const p = admin.firestore.DocumentReference(`cities-weater/${city}`).get();
-//         promises.push();
-//       }
-//       return promise.s;
-//     });
-// });
+
 
 export const getUids = functions.region("southamerica-east1").firestore
   .document("emergency/{any}")
@@ -204,18 +180,6 @@ export const acceptEmergency = functions.region("southamerica-east1").https.onCa
 });
 
 
-// export const getData = functions.region("southamerica-east1").https.onRequest((req, res)=> {
-//   const promise = admin.firestore().doc("emergency/HsPgBiSxc9WtxhWp2aUL").get();
-//   const p2 = promise.then((snapshot) => {
-//     const data = snapshot.data();
-//     res.send(data);
-//   });
-//   p2.catch((err) => {
-//     console.log(err);
-//     res.status(500).send(err);
-//   });
-// });
-
 export const getData = functions.region("southamerica-east1").https.onCall(async (data, context)=> {
   const emergencyUid = data.emergency.toString();
   const emergencyRef = db.collection("emergencias");
@@ -230,7 +194,7 @@ export const getData = functions.region("southamerica-east1").https.onCall(async
 });
 
 
-export const listAllEmergencies = functions.region("southamerica-east1").https.onCall(async (req, res) => {
+export const listAllEmergencies = functions.region("southamerica-east1").https.onCall(async (data, context) => {
   const emergencyRef = db.collection("emergencias");
   const snapshot = await emergencyRef.where("status", "==", "new").get();
   const list: admin.firestore.DocumentData[] = [];
@@ -239,8 +203,10 @@ export const listAllEmergencies = functions.region("southamerica-east1").https.o
     functions.logger.log("DOC DATA ---->", doc.data());
     functions.logger.log("LIST ----->", list);
   });
-  return list;
+  functions.logger.log(JSON.stringify(list));
+  return JSON.stringify(list);
 });
+
 
 exports.listAllEmergencies1 = functions.region("southamerica-east1").https.onRequest(async (req, res) => {
   try {
@@ -322,7 +288,7 @@ export const getAcceptedBy = functions
 
     functions.logger.log(list);
     functions.logger.log(list1);
-    return list1;
+    return JSON.stringify(list1);
   });
 
 
@@ -400,13 +366,6 @@ export const acceptDentist = functions
         },
         token: doc.data().fcmToken,
       };
-      // const message: admin.messaging.Message = {
-      //   notification: {
-      //     title: 'New Message',
-      //     body: 'You have received a new message.'
-      //   },
-      //   token:  doc.data().fcmToken
-      // };
 
       (await admin.messaging().send(message));
     });
@@ -699,81 +658,32 @@ export const getAvaliacoes = functions
         functions.logger.log(rate.toString());
         list.push(rate.toString());
       });
-      return list;
+      return JSON.stringify(list);
     });
   });
 
 
-export const finishEmergency = functions
+export const getHistoric = functions
   .region("southamerica-east1")
   .https.onCall(async (data, context) => {
-    const {uid, emergency} = data;
+    const {uid} = data;
 
+    const list: admin.firestore.DocumentData[] = [];
 
-    functions.logger.log("UID USER -----> "+uid);
+    functions.logger.log("UID USER -----> " + uid);
 
-    // Get a Firestore instance
-
-    // Search for a document with matching uid in "avaliacoes" collection
+    // Search for a document with matching uid in "historic" collection
     const querySnapshot = await db
-      .collection("avaliacoes")
+      .collection("historico")
       .where("uid", "==", uid)
       .get();
 
-
     // Iterate through each document
     querySnapshot.forEach((doc) => {
-      const acceptants: any[] = doc.data().avaliacoes || [];
-      acceptants.forEach((rate) => {
-        functions.logger.log(rate.toString());
-        list.push(rate.toString());
-      });
-      return list;
+      list.push(doc.data().historic);
     });
+
+    functions.logger.log(JSON.stringify(list));
+    return JSON.stringify(list); // Return the list outside the forEach loop
   });
-// export const getAcceptedBy = functions
-// .region("southamerica-east1")
-// .https.onCall(async (data, context) => {
-//   const uid = data.uid;
 
-//   const usersRef = db.collection("usuarios");
-//   const emergencyRef = db.collection("emergencias");
-
-//   const query = await emergencyRef.where("uid", "==", uid).get();
-
-//   functions.logger.log("UID --->");
-//   const list: admin.firestore.DocumentData[] = [];
-//   const list1: admin.firestore.DocumentData[] = [];
-
-//   const promises: Promise<void>[] = [];
-
-//   query.forEach(async (doc) => {
-//     functions.logger.log("docID ->", doc.id);
-//     functions.logger.log("DATA: ->", doc.data().acceptedBy.toString());
-
-//     const acceptants: any[] = doc.data().acceptedBy || [];
-
-//     list.push(...acceptants);
-//     functions.logger.log("ACCEPTANTS: ->", acceptants.toString());
-//     list.push(doc.data().acceptedBy);
-
-// acceptants.forEach((uid: any) => {
-//   functions.logger.log(uid);
-//   const queryDentist = usersRef.where("uid", "==", uid).get();
-//   const promise = queryDentist.then((snapshot) => {
-//     snapshot.forEach((doc1) => {
-//       const data = doc1.data();
-//       list1.push(data);
-//       functions.logger.log(doc1.data().toString());
-//     });
-//   });
-//   promises.push(promise);
-// });
-//   });
-
-//   await Promise.all(promises); // Wait for all async operations to complete
-
-//   functions.logger.log(list);
-//   functions.logger.log(list1);
-//   return list1;
-// });
